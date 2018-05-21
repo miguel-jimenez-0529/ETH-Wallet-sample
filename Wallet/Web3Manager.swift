@@ -293,9 +293,16 @@ final class Web3Manager {
     
         intermediate.transaction.nonce = web3.eth.getTransactionCount(address: self.getAccountAddress()).value!
         
-        guard web3.wallet.signTX(transaction: &intermediate.transaction, account: self.getAccountAddress(), password: passphrase).value! else {
+        let transacciontRes = web3.wallet.signTX(transaction: &intermediate.transaction, account: self.getAccountAddress(), password: passphrase)
+    
+        if let error = transacciontRes.error {
+            throw error
+        }
+        
+        guard transacciontRes.value! else {
             throw SmartContractError.TransactionSigningFailure
         }
+        
         guard let result = intermediate.sendSigned().value else {
             throw SmartContractError.TXHashReceiveFailure
         }
@@ -388,23 +395,6 @@ final class Web3Manager {
             return values["0"] as? BigUInt
         case .failure(let error):
             throw error
-        }
-    }
-    
-    func prepareRawTransaction(from address : EthereumAddress, gasLimit : BigUInt) {
-        web3.addKeystoreManager(self.getKeyStoreManager())
-        
-        let contract = web3.contract(Web3.Utils.coldWalletABI, at: address, abiVersion: 2)
-        var options = Web3Options.defaultOptions()
-        options.value = Web3.Utils.parseToBigUInt("0.1", units: .eth)
-        options.gasLimit = gasLimit
-        options.from = self.getAccountAddress()
-        if let intermediate = contract?.method("fallback", options: options) {
-            intermediate.transaction.nonce = web3.eth.getTransactionCount(address: address).value!
-            intermediate.transaction.gasPrice = web3.eth.estimateGas(intermediate.transaction, options: options).value!
-            web3.wallet.signTX(transaction: &intermediate.transaction, account: address)
-            let result = intermediate.sendSigned().value
-            print(result)
         }
     }
 }
