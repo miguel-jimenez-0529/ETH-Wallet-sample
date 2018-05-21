@@ -10,7 +10,7 @@ final class Web3Manager {
     private var web3 : web3
     
     private init() {
-        web3 = Web3.InfuraRinkebyWeb3()
+        web3 = Web3.InfuraMainnetWeb3()
     }
     
     private enum File: String {
@@ -26,12 +26,50 @@ final class Web3Manager {
         case InvalidPrivateKey
     }
     public enum SmartContractType {
-        case Smart_Contract_Name
+        case BBI
         case Test
+        
+        var abi : String {
+            switch self {
+            case .BBI:
+                return "bbi"
+            case .Test:
+                return "test"
+            }
+        }
+        
+        var contractAddress : String {
+            switch self {
+            case .BBI:
+                return "0x37d40510a2f5bc98aa7a0f7bf4b3453bcfb90ac1"
+            case .Test:
+                return "0x..."
+            }
+        }
     }
-    public enum SmartContractMethod: String {
-        case Smart_Contract_Method_Name = ""
-        case calale = "calale"
+    public enum SmartContractMethod  {
+        case balanceOf
+        case transfer(to: String, value : String)
+        
+        var functionName : String {
+            switch self {
+            case .balanceOf:
+                return "balanceOf"
+            case .transfer:
+                return "transfer"
+            }
+        }
+        
+        var params : [AnyObject] {
+            switch self {
+            case .balanceOf:
+                return [Web3Manager.sharedInstance.getAccountAddress() as AnyObject]
+            case .transfer(to: let to, value: let value):
+                let amount = BigUInt(value)
+                let toAddress = EthereumAddress(to)
+                return [toAddress as AnyObject, amount as AnyObject]
+            }
+        }
     }
     private enum SmartContractError: Error {
         case InvalidMethod
@@ -220,52 +258,36 @@ final class Web3Manager {
     }
     
     // Función para obtener el archivo JSON que contenga el ABI del smart contract y su respectiva address. Es obligatorio añadir a la app el archivo JSON con el ABI o al menos el string completo de dicho ABI resguardado en una constante de tipo String.
-    private func getSmartContractParams(_ type: SmartContractType) -> (String, String) {
-        var json = String()
-        var address = String()
-        
-        switch type {
-        case .Smart_Contract_Name:
-            json = "JSON File Name"
-            address = "0x..."
-        case .Test:
-            json = "test"
-            address = "0xC8fE5F9b3fc2f571AEFB53ceC662416Ad32A56b8"
-        }
-        
-        let path = Bundle.main.path(forResource: json, ofType: "json")!
+    private func getSmartContractParams(_ type: SmartContractType) ->  (abi : String, address: EthereumAddress) {
+        let path = Bundle.main.path(forResource: type.abi, ofType: "json")!
         let abi = try! String(contentsOf: URL(fileURLWithPath: path))
-        
-        return (abi, address)
+        return (abi, EthereumAddress(type.contractAddress))
     }
     
     
     
     // Función que firma y manda una transacción a un smart contract.
     // Nota: Aún no se ha probado para realizar firma de transacciones cuando son transferencias entre cuentas, para eso checar el único ejemplo que tiene la librería.
-    public func sendTransactionToSmartContract(passphrase: String, type: SmartContractType, method: SmartContractMethod, params: [AnyObject]) throws -> String {
-//        guard let url = URL(string: "http://www.google"), let web3 = Web3.new(url) else {
-//            throw SmartContractError.Web3ProviderNotFound
-//        }
+    public func sendTransactionToSmartContract(passphrase: String, type: SmartContractType, method: SmartContractMethod) throws -> String {
         
         let keystoreManager = self.getKeyStoreManager()
-        let smartcontractABI = self.getSmartContractParams(type).0
-        let smartcontractAddress = EthereumAddress(self.getSmartContractParams(type).1)
+        let smartcontractABI = self.getSmartContractParams(type).abi
+        let smartcontractAddress = self.getSmartContractParams(type).address
         var options = Web3Options()
         
         web3.addKeystoreManager(keystoreManager)
         
         options.from = self.getAccountAddress()
         options.to = smartcontractAddress
-        options.gasPrice = BigUInt(3E9)
-        options.gasLimit = BigUInt(21E4)
-        options.value = BigUInt("")
+        options.gasPrice = BigUInt(0x028fa6ae00) //180,000
+        options.gasLimit = BigUInt(0x02bf20)//11 Gwei
+        options.value = BigUInt("0")
         
         guard let smartcontract = web3.contract(smartcontractABI, at: smartcontractAddress) else {
             throw SmartContractError.SmartContractFailure
         }
         
-        guard let intermediate = smartcontract.method(method.rawValue, parameters: params , options: options) else {
+        guard let intermediate = smartcontract.method(method.functionName, parameters: method.params , options: options) else {
             throw SmartContractError.InvalidMethod
         }
     
@@ -277,7 +299,6 @@ final class Web3Manager {
         guard let result = intermediate.sendSigned().value else {
             throw SmartContractError.TXHashReceiveFailure
         }
-        
         
         let resultCall =  intermediate.call(options: options)
         resultCall.analysis(ifSuccess: { (values) in
@@ -334,6 +355,56 @@ final class Web3Manager {
             return
         case .failure(let error):
             guard case .unknownError = error else {return }
+        }
+    }
+    
+    func callSmartContractFunction(type: SmartContractType, method: SmartContractMethod) throws -> BigUInt? {
+        
+        let keystoreManager = self.getKeyStoreManager()
+        let smartcontractABI = self.getSmartContractParams(type).abi
+        let smartcontractAddress = self.getSmartContractParams(type).address
+        var options = Web3Options()
+        
+        web3.addKeystoreManager(keystoreManager)
+        
+        options.from = self.getAccountAddress()
+        options.to = smartcontractAddress
+        options.value = "0"
+        
+        guard let smartcontract = web3.contract(smartcontractABI, at: smartcontractAddress) else {
+            throw SmartContractError.SmartContractFailure
+        }
+        
+        guard let intermediate = smartcontract.method(method.functionName, parameters: method.params , options: options) else {
+            throw SmartContractError.InvalidMethod
+        }
+        
+        intermediate.transaction.nonce = web3.eth.getTransactionCount(address: self.getAccountAddress()).value!
+        
+        let resultCall =  intermediate.call(options: options)
+        switch resultCall {
+        case .success(let values):
+            print(values)
+            return values["0"] as? BigUInt
+        case .failure(let error):
+            throw error
+        }
+    }
+    
+    func prepareRawTransaction(from address : EthereumAddress, gasLimit : BigUInt) {
+        web3.addKeystoreManager(self.getKeyStoreManager())
+        
+        let contract = web3.contract(Web3.Utils.coldWalletABI, at: address, abiVersion: 2)
+        var options = Web3Options.defaultOptions()
+        options.value = Web3.Utils.parseToBigUInt("0.1", units: .eth)
+        options.gasLimit = gasLimit
+        options.from = self.getAccountAddress()
+        if let intermediate = contract?.method("fallback", options: options) {
+            intermediate.transaction.nonce = web3.eth.getTransactionCount(address: address).value!
+            intermediate.transaction.gasPrice = web3.eth.estimateGas(intermediate.transaction, options: options).value!
+            web3.wallet.signTX(transaction: &intermediate.transaction, account: address)
+            let result = intermediate.sendSigned().value
+            print(result)
         }
     }
 }

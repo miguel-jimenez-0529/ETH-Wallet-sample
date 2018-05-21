@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		520936BC20B3105C00D400D7 /* ABI_BBI.json in Resources */ = {isa = PBXBuildFile; fileRef = 520936BB20B3105C00D400D7 /* ABI_BBI.json */; };
+		520936BE20B31D6300D400D7 /* bbi.json in Resources */ = {isa = PBXBuildFile; fileRef = 520936BD20B31D6300D400D7 /* bbi.json */; };
 		52748B7E20AB1A42008FAAEE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52748B7D20AB1A42008FAAEE /* AppDelegate.swift */; };
 		52748B8020AB1A42008FAAEE /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52748B7F20AB1A42008FAAEE /* ViewController.swift */; };
 		52748B8320AB1A42008FAAEE /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 52748B8120AB1A42008FAAEE /* Main.storyboard */; };
@@ -17,6 +19,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		520936BB20B3105C00D400D7 /* ABI_BBI.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = ABI_BBI.json; sourceTree = "<group>"; };
+		520936BD20B31D6300D400D7 /* bbi.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = bbi.json; sourceTree = "<group>"; };
 		52748B7A20AB1A42008FAAEE /* Wallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		52748B7D20AB1A42008FAAEE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		52748B7F20AB1A42008FAAEE /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -63,6 +67,8 @@
 		52748B7C20AB1A42008FAAEE /* Wallet */ = {
 			isa = PBXGroup;
 			children = (
+				520936BD20B31D6300D400D7 /* bbi.json */,
+				520936BB20B3105C00D400D7 /* ABI_BBI.json */,
 				52748B7D20AB1A42008FAAEE /* AppDelegate.swift */,
 				52748B7F20AB1A42008FAAEE /* ViewController.swift */,
 				52748B8F20AB1AD3008FAAEE /* Web3Manager.swift */,
@@ -151,8 +157,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				520936BC20B3105C00D400D7 /* ABI_BBI.json in Resources */,
 				52748B8820AB1A45008FAAEE /* LaunchScreen.storyboard in Resources */,
 				52748B8520AB1A45008FAAEE /* Assets.xcassets in Resources */,
+				520936BE20B31D6300D400D7 /* bbi.json in Resources */,
 				52748B8320AB1A42008FAAEE /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
